@@ -23,9 +23,9 @@
 </iframe>
 </td>
 
-<td>
+<td><pre>
 <?php
 	var_dump($propArray[$_GET['key']]);
 
-?>
+?></pre>
 </td></tr></table>
