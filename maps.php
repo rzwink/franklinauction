@@ -1,8 +1,9 @@
 <?php
+	//zillow X1-ZWz19it3cfwydn_7x5fi
 	if(isset($_GET['saledate'])){
 		$saledate = $_GET['saledate'];
 	}else{
-		$saledate = "10/28/2016";	
+		$saledate = "10/28/2016";
 	}
 
 	$filename = 'propArray'.urlencode($saledate).date("Ymd").'.txt';
@@ -45,6 +46,18 @@
 			$propArray[$key]['dst'] = @current(@json_decode(@file_get_contents("http://www.datasciencetoolkit.org/street2coordinates/".urlencode($address)), true));
 		}
 
+		foreach($propArray as $key=>$v){
+			$url = "http://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id=X1-ZWz19it3cfwydn_7x5fi&address=".urlencode($v['AddrNbr'].' '.$v['PropHalfInd'].' '.$v['AddrStrDir'].' '.$v['AddrStrName'])."&citystatezip=".urlencode($v['AddrCity'].', '.$v['AddrState'].', '.$v['AddrZip']);
+			$xml = simplexml_load_string(@file_get_contents($url), "SimpleXMLElement", LIBXML_NOCDATA);
+			$json = json_encode($xml);
+			$array = json_decode($json,TRUE);		
+			
+			$propArray[$key]['zillow'] = @$array['response']['results']['result'];
+		}
+
+
+		//1168%20glenn%20ave&citystatezip=Columbus,%20Ohio%2043212
+
 		$fp = fopen($filename, 'w+');
 		fwrite($fp, serialize($propArray));
 		fclose($fp);
@@ -59,7 +72,18 @@
 	$json = array();
 	foreach($propArray as $key=>$v){
 		if($v['SSStatus']=='ACTIVE'){
-			$json[] = array("<a href='detail.php?saledate=".urlencode($saledate)."&key=".$key."' target='key'>".$key."</a>", $v['dst']['latitude'], $v['dst']['longitude'], $i++);
+		
+      $z = "AY ".@$v['zillow']['taxAssessmentYear']."</br>";  // => string '2015' (length=4)
+      $z .= "TA ".number_format(@$v['zillow']['taxAssessment'])."</br>";  // => string '76400.0' (length=7)
+      $z .= "YB ".@$v['zillow']['yearBuilt']."</br>";  // => string '1973' (length=4)
+      $z .= "Lot SqFt ".@$v['zillow']['lotSizeSqFt']."</br>";  // => string '6970' (length=4)
+      $z .= "SqFt ".@$v['zillow']['finishedSqFt']."</br>";  // => string '1288' (length=4)
+      $z .= "Bath ".@$v['zillow']['bathrooms']."</br>";  // => string '3.0' (length=3)
+      $z .= "Bed ".@$v['zillow']['bedrooms']."</br>";  // => string '3' (length=1)
+      $z .= "Last Sold ".@$v['zillow']['lastSoldDate']."</br>";  // => string '04/26/1993' (length=10)
+      $z .= "Last Price ".number_format(@$v['zillow']['lastSoldPrice'])."</br>";  // => string '44000' (length=5)
+		
+			$json[] = array($z."<a href='detail.php?saledate=".urlencode($saledate)."&key=".$key."' target='key'>".$key."</a></br>", $v['dst']['latitude'], $v['dst']['longitude'], $i++);
 		}
 	}
 
@@ -140,7 +164,7 @@
                 <h1>Franklin County, Ohio Sheriff - Real Estate Auction</h1>
                 <p><form method="get">
                 	<select onChange="submit()" name="saledate">
-                		<?php 
+                		<?php
                 			$selected = "";
                 			foreach($salesDatesArray as $date){
                 				$date = trim($date);
@@ -151,7 +175,7 @@
                 				}
                 				echo "<option $selected>".$date."</option>";
                 			}
-                		                		
+
                 		?>
                 	</select>
                 </form></p>
