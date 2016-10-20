@@ -163,7 +163,7 @@
             <div class="col-lg-12 text-center">
                 <h1>Franklin County, Ohio Sheriff - Real Estate Auction</h1>
                 <p><form method="get">
-                	<select onChange="submit()" name="saledate">
+                	Auction Date: <select onChange="submit()" name="saledate">
                 		<?php
                 			$selected = "";
                 			foreach($salesDatesArray as $date){
