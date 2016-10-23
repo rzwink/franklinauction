@@ -21,6 +21,7 @@
   frameborder="0" style="border:0"
   src="https://www.google.com/maps/embed/v1/streetview?key=AIzaSyAc-3XDYg1KF7ihmtbL5ZeFtX9nt0-I_wE&location=<?php echo $propArray[$_GET['key']]['zillow']['address']['latitude'];?>,<?php echo $propArray[$_GET['key']]['zillow']['address']['longitude'];?>&heading=210&pitch=10&fov=35" allowfullscreen>
 </iframe>
+<a href="http://www.zillow.com"><img border="0" src="http://www.zillow.com/widgets/GetVersionedResource.htm?path=/static/logos/Zillowlogo_200x50.gif" width="200" height="50" alt="Zillow Real Estate Search" /></a>
 </td>
 
 <td>
