@@ -14,13 +14,26 @@
 			$search = '<span id="c_printsearchresults_gvResults_lbl';
 			$p = strpos($line, $search);
 			if($p === false){
-				return $p;
+				// ^<td class="ReportFONT" style="width:5%;">(.*)<\/td><td class="ReportFONT" style="width:5%;">(.*)<\/td><td class="ReportFONT" style="width:5%;">(.*)<\/td>$
+				
+				$re = '/<td class="ReportFONT" width="5%">([^a-z]+)<\/td><td class="ReportFONT" width="5%">([^a-z]+)<\/td><td class="ReportFONT" width="5%">([^a-z]+)<\/td>/';
+//				echo "searching" . $line . "for".$re;
+				
+				$found = preg_match_all($re, $line, $matches, PREG_PATTERN_ORDER);
+				
+				if($found > 0){
+					// Print the entire match result
+					//print_r($matches);		Opening Bid	Deposit
+					return array("auction", array("Appraised"=>current($matches[1]), "Opening Bid"=>current($matches[2]), "Deposit"=>current($matches[3])));
+				}else{
+					return false;
+				}
+			}else{
+				$tag = substr(substr($line, strlen($search)), 0, strpos(substr($line, strlen($search)), '"'));
+				$value = substr(substr($line, strlen($search)), strpos(substr($line, strlen($search)), '">')+2);
+				$value = substr($value, 0, strpos($value, "</span>"));	
+				return array(explode("_", $tag)[0], $value);
 			}
-
-			$tag = substr(substr($line, strlen($search)), 0, strpos(substr($line, strlen($search)), '"'));
-			$value = substr(substr($line, strlen($search)), strpos(substr($line, strlen($search)), '">')+2);
-			$value = substr($value, 0, strpos($value, "</span>"));
-			return array(explode("_", $tag)[0], $value);
 		}
 
 		$url = "https://sheriff.franklincountyohio.gov/search/real-estate/printresults.aspx?q=searchType%3dSaleDate%26searchString%3d".htmlspecialchars($saledate)."%26foreclosureType%3d%26sortType%3ddefendant%26saleDateFrom%3d%26saleDateTo%3d";
@@ -41,10 +54,10 @@
 			}
 		}
 
-		foreach($propArray as $key=>$v){
-			$address = $v['AddrNbr'].' '.$v['PropHalfInd'].' '.$v['AddrStrDir'].' '.$v['AddrStrName'].', '.$v['AddrCity'].', '.$v['AddrState'].', '.$v['AddrZip'];
-			$propArray[$key]['dst'] = @current(@json_decode(@file_get_contents("http://www.datasciencetoolkit.org/street2coordinates/".urlencode($address)), true));
-		}
+//		foreach($propArray as $key=>$v){
+//			$address = $v['AddrNbr'].' '.$v['PropHalfInd'].' '.$v['AddrStrDir'].' '.$v['AddrStrName'].', '.$v['AddrCity'].', '.$v['AddrState'].', '.$v['AddrZip'];
+//			$propArray[$key]['dst'] = @current(@json_decode(@file_get_contents("http://www.datasciencetoolkit.org/street2coordinates/".urlencode($address)), true));
+//		}
 
 		foreach($propArray as $key=>$v){
 			$url = "http://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id=X1-ZWz19it3cfwydn_7x5fi&address=".urlencode($v['AddrNbr'].' '.$v['PropHalfInd'].' '.$v['AddrStrDir'].' '.$v['AddrStrName'])."&citystatezip=".urlencode($v['AddrCity'].', '.$v['AddrState'].', '.$v['AddrZip']);
@@ -52,7 +65,14 @@
 			$json = json_encode($xml);
 			$array = json_decode($json,TRUE);		
 			
-			$propArray[$key]['zillow'] = @$array['response']['results']['result'];
+	
+				$propArray[$key]['zillow'] = @$array['response']['results']['result'];
+
+				$before = (int)str_replace(array("$", ","), "", ($propArray[$key]['auction']['Appraised']));
+				$after = @(int)current($propArray[$key]['zillow']['zestimate']);
+
+				$propArray[$key]['calczillowdiff']=@number_format((($after - $before) / $before) * 100, 1);
+			
 		}
 
 
@@ -68,24 +88,51 @@
 	}
 
 	$propArray = unserialize(file_get_contents($filename));
-	$i=1;
+	$i=0;
 	$json = array();
 	foreach($propArray as $key=>$v){
-		if($v['SSStatus']=='ACTIVE'){
+		if($v['SSStatus']=='ACTIVE' && isset($v['zillow']['address'])){
 		
-      $z = "AY ".@$v['zillow']['taxAssessmentYear']."</br>";  // => string '2015' (length=4)
-      $z .= "TA ".number_format(@$v['zillow']['taxAssessment'])."</br>";  // => string '76400.0' (length=7)
-      $z .= "YB ".@$v['zillow']['yearBuilt']."</br>";  // => string '1973' (length=4)
-      $z .= "Lot SqFt ".@$v['zillow']['lotSizeSqFt']."</br>";  // => string '6970' (length=4)
-      $z .= "SqFt ".@$v['zillow']['finishedSqFt']."</br>";  // => string '1288' (length=4)
-      $z .= "Bath ".@$v['zillow']['bathrooms']."</br>";  // => string '3.0' (length=3)
-      $z .= "Bed ".@$v['zillow']['bedrooms']."</br>";  // => string '3' (length=1)
-      $z .= "Last Sold ".@$v['zillow']['lastSoldDate']."</br>";  // => string '04/26/1993' (length=10)
-      $z .= "Last Price ".number_format(@$v['zillow']['lastSoldPrice'])."</br>";  // => string '44000' (length=5)
-		
-			$json[] = array($z."<a href='detail.php?saledate=".urlencode($saledate)."&key=".$key."' target='key'>".$key."</a></br>", $v['dst']['latitude'], $v['dst']['longitude'], $i++);
+			      $z = "AY ".@$v['zillow']['taxAssessmentYear']."</br>";  // => string '2015' (length=4)
+			      $z .= "TA ".number_format(@$v['zillow']['taxAssessment'])."</br>";  // => string '76400.0' (length=7)
+			      $z .= "YB ".@$v['zillow']['yearBuilt']."</br>";  // => string '1973' (length=4)
+			      $z .= "Lot SqFt ".@$v['zillow']['lotSizeSqFt']."</br>";  // => string '6970' (length=4)
+			      $z .= "SqFt ".@$v['zillow']['finishedSqFt']."</br>";  // => string '1288' (length=4)
+			      $z .= "Bath ".@$v['zillow']['bathrooms']."</br>";  // => string '3.0' (length=3)
+			      $z .= "Bed ".@$v['zillow']['bedrooms']."</br>";  // => string '3' (length=1)
+			      $z .= "Last Sold ".@$v['zillow']['lastSoldDate']."</br>";  // => string '04/26/1993' (length=10)
+			      $z .= "Last Price ".number_format(@$v['zillow']['lastSoldPrice'])."</br>";  // => string '44000' (length=5)
+			$label = "";
+			
+			if($i++ < 9){
+				$label = (string)$i;
+				
+			}else{
+				$label = "";
+				
+			}
+			
+			
+			$json[] = array($z."<a href='detail.php?saledate=".urlencode($saledate)."&key=".$key."' target='key'>".$key."</a></br>", $v['zillow']['address']['latitude'], $v['zillow']['address']['longitude'], $label);
 		}
 	}
+
+
+	// Comparison function
+	function cmp($a, $b) {
+	    if(!isset($a['calczillowdiff'])||!isset($b['calczillowdiff'])){
+	    	return -1;
+	    }
+	    
+	    if ($a['calczillowdiff'] == $b['calczillowdiff']) {
+		return 0;
+	    }
+	    return ($a['calczillowdiff'] < $b['calczillowdiff']) ? 1 : -1;
+	}
+
+	uasort($propArray, 'cmp');
+	//var_dump($propArray);
+
 
 ?>
 <!DOCTYPE html>
@@ -185,8 +232,8 @@
     var locations = <?php echo json_encode($json);?>;
 
     var map = new google.maps.Map(document.getElementById('map'), {
-      zoom: 10,
-      center: new google.maps.LatLng(40.076927, -82.9991),
+      zoom: 11,
+      center: new google.maps.LatLng(40.000000, -83.0000),
       mapTypeId: google.maps.MapTypeId.ROADMAP
     });
 
@@ -197,6 +244,7 @@
     for (i = 0; i < locations.length; i++) {
       marker = new google.maps.Marker({
         position: new google.maps.LatLng(locations[i][1], locations[i][2]),
+        label: locations[i][3],
         map: map
       });
 
@@ -208,7 +256,14 @@
       })(marker, i));
     }
   </script></p>
+<table>
+<?php
 
+	foreach($propArray as $key=>$v){
+		echo "<tr><td><a href='detail.php?saledate=".urlencode($saledate)."&key=".$key."' target='key'>".$key."</a></td></tr>";
+	}
+?>
+</table>
             </div>
         </div>
         <!-- /.row -->

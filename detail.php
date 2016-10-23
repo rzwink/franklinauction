@@ -19,11 +19,38 @@
   width="600"
   height="450"
   frameborder="0" style="border:0"
-  src="https://www.google.com/maps/embed/v1/streetview?key=AIzaSyAc-3XDYg1KF7ihmtbL5ZeFtX9nt0-I_wE&location=<?php echo $propArray[$_GET['key']]['dst']['latitude'];?>,<?php echo $propArray[$_GET['key']]['dst']['longitude'];?>&heading=210&pitch=10&fov=35" allowfullscreen>
+  src="https://www.google.com/maps/embed/v1/streetview?key=AIzaSyAc-3XDYg1KF7ihmtbL5ZeFtX9nt0-I_wE&location=<?php echo $propArray[$_GET['key']]['zillow']['address']['latitude'];?>,<?php echo $propArray[$_GET['key']]['zillow']['address']['longitude'];?>&heading=210&pitch=10&fov=35" allowfullscreen>
 </iframe>
 </td>
 
-<td><pre>
+<td>
+<table> 
+	<tr>
+		<td>Appraised</td><td align="right"><?php echo number_format((int)str_replace(array("$", ","), "", ($propArray[$_GET['key']]['auction']['Appraised'])), 2);?></td>
+	</tr>
+	<tr>
+		<td>Opening Bid</td><td align="right"><?php echo number_format((int)str_replace(array("$", ","), "", $propArray[$_GET['key']]['auction']['Opening Bid']), 2);?></td>
+	</tr>
+	<tr>
+		<td>Deposit</td><td align="right"><?php echo number_format((int)str_replace(array("$", ","), "", $propArray[$_GET['key']]['auction']['Deposit']), 2);?></td>
+	</tr>
+	<tr>
+		<td>Auditor</td><td align="right"><?php echo number_format($propArray[$_GET['key']]['zillow']['taxAssessment'], 2);?></td>
+	</tr>
+	<tr>
+		<td>Zillow</td><td align="right"><?php echo number_format(current($propArray[$_GET['key']]['zillow']['zestimate']), 2);?></td>
+	</tr>
+	<tr>
+		<td>Zillow higher by</td><td><?php   
+		
+		$before = (int)str_replace(array("$", ","), "", ($propArray[$_GET['key']]['auction']['Appraised']));
+		$after = (int)current($propArray[$_GET['key']]['zillow']['zestimate']);
+		echo number_format((($after - $before) / $before) * 100, 1) . "%";
+		?></td>
+	</tr>
+</table>
+
+<pre>
 <?php
 	var_dump($propArray[$_GET['key']]);
 
