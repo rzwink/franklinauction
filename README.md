@@ -1,0 +1,1 @@
+View Franklin County Ohio properties at auction on a map.  Properties are sorted by the difference between the appraised amount and zillow estimate.
