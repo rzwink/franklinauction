@@ -3,7 +3,7 @@
 	if(isset($_GET['saledate'])){
 		$saledate = $_GET['saledate'];
 	}else{
-		$saledate = "10/28/2016";
+		$saledate = "11/18/2016";
 	}
 
 	$filename = 'propArray'.urlencode($saledate).date("Ymd").'.txt';
@@ -260,7 +260,7 @@
 <?php
 
 	foreach($propArray as $key=>$v){
-		echo "<tr><td><a href='detail.php?saledate=".urlencode($saledate)."&key=".$key."' target='key'>".$key."</a></td></tr>";
+		echo "<tr><td><a href='detail.php?saledate=".urlencode($saledate)."&key=".$key."' target='key'>".$key."</a></td><td>".$v['calczillowdiff']."</td><td align='right'>".number_format(@(int)current($propArray[$key]['zillow']['zestimate']))."</td><td>&nbsp;&nbsp;".$propArray[$key]['ForclosureType']."</td></tr>";
 	}
 ?>
 </table>
